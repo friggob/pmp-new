@@ -1,5 +1,5 @@
-from .file import File
 import logging
+from .file import File
 
 logger = logging.getLogger(__name__)
 

@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
+import os
+import datetime
+import argparse as argp
+import logging
+from mimetypes import guess_type
+from pathlib import Path
+import magic
 from pmp._version import __version__
 from pmp.playlist import PlayList
 from pmp.mpv import Mpv
 from pmp.cli import Cli
-from mimetypes import guess_type
-import argparse as argp
-import logging
-import magic
-import os
-import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def main():
   logger.debug(f'{args.text_file=}')
   if args.text_file:
     for file in args.text_file:
-      with open(file[0], 'r') as f:
+      with open(file[0], 'r', encoding = 'UTF-8') as f:
         for line in f.readlines():
           file_list.append(line.strip('\n'))
 
@@ -47,11 +48,11 @@ def main():
 def create_file_list_dict(files: list = None):
   if files is None:
     print('No files given!')
-    return
+    return None
 
   pl_dict = PlayList().playlist_format()
   logger.debug(f'{pl_dict=}')
-  
+
   for f in files:
     fi = create_file(f)
     if fi:
@@ -78,10 +79,10 @@ def setup_player(args):
   player_args['cache']   = args.cache
   player_args['verbose'] = args.verbose
   player_args['stereo']  = args.stereo
-  player_args.update({'slang': args.subtitle_language}) if args.subtitle_language else None
-  player_args.update({'alang': args.audio_language}) if args.audio_language else None
-  player_args.update({'sid': args.subtitle_id}) if args.subtitle_id else None
-  player_args.update({'aid': args.audio_id}) if args.audio_id else None
+  _ = player_args.update({'slang': args.subtitle_language}) if args.subtitle_language else None
+  _ = player_args.update({'alang': args.audio_language}) if args.audio_language else None
+  _ = player_args.update({'sid': args.subtitle_id}) if args.subtitle_id else None
+  _ = player_args.update({'aid': args.audio_id}) if args.audio_id else None
   player.set_args(player_args)
 
   return player
@@ -92,7 +93,7 @@ def create_file(filename: str  = None):
     return None
   mime_type = get_mime(filename)
   logger.debug(f'{mime_type=}')
-  
+
   if any(x in mime_type for x in filetypes):
     ret_dict = {'fullpath': filename, 'mime': mime_type}
     logger.debug(f'{ret_dict=}')
@@ -100,7 +101,6 @@ def create_file(filename: str  = None):
   return None
 
 def get_mime(filename: str = None):
-  from pathlib import Path
   if filename is None:
     return None
   suffix = Path(filename).suffix.split('.')[-1]
@@ -148,7 +148,8 @@ def parse_args_setup():
                  help = 'Make player output more verbose')
   p.add_argument('-#', '--start-at', default = None, type = int,
                  help = "Start playing at numbered playlist postition")
-  p.add_argument('-t', '--text-file', metavar = '<filename>', nargs = 1, action='append', type = str,
+  p.add_argument('-t', '--text-file', metavar = '<filename>', nargs = 1, action='append',
+                 type = str,
                  help = 'Pass a text file with path to files to play, one on each line')
   p.add_argument('-j', '--subtitle-language', default = None, type = str,
                  help = 'Set mpv subtitle language by subtitle language code')

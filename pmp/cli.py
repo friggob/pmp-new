@@ -1,3 +1,5 @@
+import json
+from filecmp import cmp
 from cmd import Cmd
 from random import shuffle
 from pathlib import Path
@@ -6,6 +8,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Cli(Cmd):
+  # pylint: disable=too-many-instance-attributes
+  # pylint: disable=too-many-arguments
+  # pylint: disable=too-many-positional-arguments
+  # pylint: disable=too-many-public-methods
+
   def __init__(self, completekey = "tab", stdin = None, stdout = None,
                player = None, playlist = None, default_actions = None,
                no_autostart = False, start_index = 0):
@@ -102,7 +109,7 @@ class Cli(Cmd):
     if self.previous_file():
       print(self.previous_file().details())
     return False
-  
+
   def do_nosound(self, _):
     '''Toggle player audio on/off'''
     self.player.toggle_sound()
@@ -110,13 +117,12 @@ class Cli(Cmd):
 
   def do_s(self, dest = ''):
     '''Save playlist to file'''
-    import json
     dest = dest if dest else '__pl.json'
     pl = self.pl.export_playlist()
     pl['next_to_play'] = self.next_idx
     pl['next_filename'] = self.pl[self.next_idx].filename
 
-    with open(dest, 'w') as fp:
+    with open(dest, 'w', encoding = 'UTF-8') as fp:
       json.dump(pl, fp, indent=2)
     return False
 
@@ -135,7 +141,7 @@ class Cli(Cmd):
   def _delete(self):
     if not self.default_actions.get('nodelete'):
       self._move_file('.delete')
-  
+
   def _move_file(self, dest = None, suffix = ''):
     if not (previous_file := self.previous_file()):
       return False
@@ -153,11 +159,9 @@ class Cli(Cmd):
       print(f'\'{dest or "sett"}\' already exists and is not a directory!')
       print("Not moving the file!")
       return False
-    else:
-      dest_dir.mkdir(exist_ok = True)
+    dest_dir.mkdir(exist_ok = True)
 
     if dest_path.exists():
-      from filecmp import cmp
       if cmp(src_file, dest_path, shallow = False):
         if dest == '.delete':
           print('File is already in .delete, removing!')
@@ -182,8 +186,7 @@ class Cli(Cmd):
   def _remove_playlist_file(self, file):
     self.pl.remove(file)
     self.set_index(self.next_idx - 1)
-    return None
-    
+
   def set_index(self, next_idx):
     self.next_idx = next_idx
     self.prev_idx = next_idx - 1
@@ -202,19 +205,18 @@ class Cli(Cmd):
   def previous_file(self):
     idx = self.prev_idx
     return None if (idx < 0 or idx >= len(self.pl)) else self.pl[idx]
-  
+
   def play_next(self):
     next_file = self.next_file()
     if  next_file is None:
       print("No more files to play!")
       return True
-    else:
-      logger.debug(f'play_next(): {next_file}')
-      print('-' * 20)
-      print(f'Playing #{self.pl.index(next_file)}, "{next_file.filename}"')
-      print()
-      self.player.play(next_file.fullpath)
-      logger.debug(f'play_next(): {next_file}')
+    logger.debug(f'play_next(): {next_file}')
+    print('-' * 20)
+    print(f'Playing #{self.pl.index(next_file)}, "{next_file.filename}"')
+    print()
+    self.player.play(next_file.fullpath)
+    logger.debug(f'play_next(): {next_file}')
     return False
 
   def emptyline(self):
@@ -229,11 +231,11 @@ class Cli(Cmd):
       self.save = False
     return self.play_next()
 
-  def default(self, args):
-    args = args.split(' ')
-    arg = args[0]
+  def default(self, line):
+    line = line.split(' ')
+    arg = line[0]
     num = int(arg) if arg.lstrip('-+').isdecimal() else None
-    logger.debug(f'{args=}')
+    logger.debug(f'{line=}')
     logger.debug(f'{arg=}')
     logger.debug(f'{num=}')
     if num is None:
@@ -253,13 +255,12 @@ class Cli(Cmd):
     prompt += f'Next: {next_file}\n'
     prompt += 'Do? '
     self.prompt = prompt
-    return None
-  
+
   def postcmd(self, stop, _):
     self.set_prompt()
     return stop
 
-  def do_EOF(self, arg):
+  def do_EOF(self, _):  # pylint: disable=invalid-name
     '''EOF'''
     print()
     return True
@@ -271,14 +272,15 @@ class Cli(Cmd):
     if self.autostart:
       self.play_next()
       self.set_prompt()
-  
-  def cmdloop(self):
+
+  def cmdloop(self, intro = None):
     if self.default_actions.get('continuous'):
       while not self.play_next():
         pass
     else:
-      return super().cmdloop()
-  
+      return super().cmdloop(intro)
+    return None
+
   def postloop(self):
     if self.default_actions.get('move_delete') and self.move:
       self._delete()

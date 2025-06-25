@@ -16,7 +16,7 @@ class File(Path):
   def set_mime(self, mime: str = None):
     if mime:
       self.mime = mime
-    
+
   def details(self):
     details = {
       'Full Path':     str(self.fullpath),

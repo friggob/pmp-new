@@ -12,7 +12,7 @@ class Mpv:
 
   def __init__(self, args: dict = None):
     self.args = {}
-    for key in Mpv.__match_flags.keys():
+    for key in Mpv.__match_flags:
       self.args[key] = False
     if args is not None:
       self.args.update(args)
@@ -33,11 +33,11 @@ class Mpv:
     cmd = ['/usr/bin/env', 'mpv', '--fs']
     flags = Mpv.__match_flags
     for key, value in self.args.items():
-      if key in flags.keys():
-        cmd.append(flags[key]) if value else None
+      if key in flags:
+        _ = cmd.append(flags[key]) if value else None
       else:
-        cmd.append(f'--{key}={value}') if value else None
+        _ = cmd.append(f'--{key}={value}') if value else None
 
     cmd.append(file)
     logger.debug(f'{cmd=}')
-    subprocess.run(cmd)
+    subprocess.run(cmd, check = False)
