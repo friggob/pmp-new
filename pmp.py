@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 
-import os
-import datetime
 import argparse as argp
+import datetime
 import logging
+import os
 from mimetypes import guess_type
+from multiprocessing import Pool
 from pathlib import Path
+
 import magic
+
 from pmp._version import __version__
-from pmp.playlist import PlayList
-from pmp.mpv import Mpv
 from pmp.cli import Cli
+from pmp.mpv import Mpv
+from pmp.playlist import PlayList
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +56,8 @@ def create_file_list_dict(files: list = None):
   pl_dict = PlayList().playlist_format()
   logger.debug(f'{pl_dict=}')
 
-  for f in files:
-    fi = create_file(f)
-    if fi:
-      pl_dict['list'].append(fi)
+  with Pool(10) as p:
+    pl_dict['list'] = list(filter(None,p.map(create_file, files)))
   logger.debug(f'{pl_dict=}')
   return pl_dict
 
@@ -89,7 +90,7 @@ def setup_player(args):
 
 def create_file(filename: str  = None):
   filetypes = ['video/', 'audio/']
-  if not filename:
+  if not filename or not Path(filename).is_file():
     return None
   mime_type = get_mime(filename)
   logger.debug(f'{mime_type=}')
