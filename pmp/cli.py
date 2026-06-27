@@ -14,6 +14,7 @@ class Cli(Cmd):
   # pylint: disable=too-many-arguments
   # pylint: disable=too-many-positional-arguments
   # pylint: disable=too-many-public-methods
+  # pylint: disable=bad-indentation
 
   def __init__(self, completekey = "tab", stdin = None, stdout = None,
                player = None, playlist = None, default_actions = None,
@@ -37,12 +38,12 @@ class Cli(Cmd):
     if num is None:
       print(f'No such command: goto {arg}')
       return self.do_help('')
-    elif num >= len(self.pl) or num < 0:
+    if num >= len(self.pl) or num < 0:
       print(f'No such index in playlist: {num}')
     else:
       self.set_index(num)
     return False
-    
+
   def do_reload(self, _):
     '''Reload files from current directory'''
     here = Path()
@@ -57,7 +58,7 @@ class Cli(Cmd):
       if self.autostart:
         return self.play_next()
     return False
-    
+
   def do_q(self, _):
     '''Quit'''
     return True
@@ -178,7 +179,7 @@ class Cli(Cmd):
       print("No filename to add path to!")
     else:
       path = filename + ".txt"
-      with open(path, 'a+') as f:
+      with open(path, 'a+', encoding="UTF-8") as f:
         f.seek(0)
         content = f.read().splitlines()
         if self.previous_file().relpath not in content:
@@ -195,7 +196,7 @@ class Cli(Cmd):
   def do_tag(self, tag):
     self.previous_file().add_tag(tag)
     return False
-  
+
   def _delete(self):
     if not self.default_actions.get('nodelete'):
       self._move_file('.delete')

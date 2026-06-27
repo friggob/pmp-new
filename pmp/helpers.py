@@ -1,11 +1,12 @@
 import json
-import magic
 import logging
 from pathlib import Path
 from mimetypes import guess_type
 from multiprocessing import Pool
 
-from pmp.playlist import PlayList
+import magic
+
+from .playlist import PlayList
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,8 @@ def create_file_list_dict(files: list = None):
     return None
 
   if '__pl.json' in files:
-    pl_dict = json.load(open('__pl.json'))
+    with open('__pl.json', encoding="UTF-8") as f:
+      pl_dict = json.load(f)
     files.remove('__pl.json')
   else:
     pl_dict = PlayList().playlist_format()
@@ -59,4 +61,3 @@ def create_file_list_dict(files: list = None):
     pl_dict['list'].extend(list(filter(None,p.map(create_file, files))))
   logger.debug(f'{pl_dict=}')
   return pl_dict
-
