@@ -5,6 +5,8 @@ from random import shuffle
 from pathlib import Path
 import logging
 
+from .helpers import create_file_list_dict
+
 logger = logging.getLogger(__name__)
 
 class Cli(Cmd):
@@ -29,6 +31,33 @@ class Cli(Cmd):
       shuffle(self.pl)
     self.set_prompt()
 
+  def do_goto(self, arg):
+    '''goto #: Set index # for next file to be played'''
+    num = int(arg) if arg.lstrip("-+").isdecimal() else 0 if not arg else None
+    if num is None:
+      print(f'No such command: goto {arg}')
+      return self.do_help('')
+    elif num >= len(self.pl) or num < 0:
+      print(f'No such index in playlist: {num}')
+    else:
+      self.set_index(num)
+    return False
+    
+  def do_reload(self, _):
+    '''Reload files from current directory'''
+    here = Path()
+    files = [ str(x.resolve()) for x in here.iterdir()]
+    pl_dict = create_file_list_dict(files)
+    if pl_dict:
+      self.pl.clear()
+      self.pl.load_playlist(pl_dict)
+      if self.default_actions.get('start_randomized'):
+        shuffle(self.pl)
+      self.set_index(0)
+      if self.autostart:
+        return self.play_next()
+    return False
+    
   def do_q(self, _):
     '''Quit'''
     return True
@@ -119,8 +148,13 @@ class Cli(Cmd):
     '''Save playlist to file'''
     dest = dest if dest else '__pl.json'
     pl = self.pl.export_playlist()
-    pl['next_to_play'] = self.next_idx
-    pl['next_filename'] = self.pl[self.next_idx].filename
+    next_file = self.next_file(increment = False)
+    if next_file:
+      pl['next_to_play'] = self.next_idx
+      pl['next_filename'] = next_file.filename
+    else:
+      pl['next_to_play'] = 0
+      pl['next_filename'] = self.pl[0].filename
 
     with open(dest, 'w', encoding = 'UTF-8') as fp:
       json.dump(pl, fp, indent=2)
@@ -138,6 +172,30 @@ class Cli(Cmd):
     self.set_index(0)
     return False
 
+  def do_add(self, filename = ''):
+    '''Add file path to <filename>.txt'''
+    if not filename:
+      print("No filename to add path to!")
+    else:
+      path = filename + ".txt"
+      with open(path, 'a+') as f:
+        f.seek(0)
+        content = f.read().splitlines()
+        if self.previous_file().relpath not in content:
+          f.write(str(self.previous_file().relpath))
+          f.write('\n')
+        else:
+          print(f'{self.previous_file().filename} already in file')
+    return False
+
+  def do_ana(self, _):
+    self.previous_file().add_tag('anal')
+    return self.do_add(filename='anal')
+
+  def do_tag(self, tag):
+    self.previous_file().add_tag(tag)
+    return False
+  
   def _delete(self):
     if not self.default_actions.get('nodelete'):
       self._move_file('.delete')
@@ -232,18 +290,9 @@ class Cli(Cmd):
     return self.play_next()
 
   def default(self, line):
-    line = line.split(' ')
-    arg = line[0]
-    num = int(arg) if arg.lstrip('-+').isdecimal() else None
-    logger.debug(f'{line=}')
-    logger.debug(f'{arg=}')
-    logger.debug(f'{num=}')
-    if num is None:
-      print(f'No such command: {arg}')
-    elif num >= len(self.pl) or num < 0:
-      print(f'No such index in playlist: {num}')
-    else:
-      self.set_index(num)
+    if line.lstrip('+-').isdecimal():
+      return self.emptyline()
+    print(f'No such command: {line}')
     return False
 
   def set_prompt(self):

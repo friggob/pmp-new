@@ -27,11 +27,12 @@ class PlayList(list):
     for e in data:
       f = File(e['fullpath'])
       f.set_mime(e['mime'])
+      f.tags = e.get('tags', [])
       if f not in self:
         self.append(f)
 
   def export_playlist(self):
     jpl = self.playlist_format()
-    for i in self:
-      jpl['list'].append(i.as_dict())
+    for f in self:
+      jpl['list'].append(f.as_dict())
     return jpl
